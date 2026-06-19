@@ -106,80 +106,81 @@ export default function ConvertingScreen() {
         useNativeDriver: false,
       }).start();
 
+      const responseJson = await response.json();
+      const base64data = responseJson.base64;
+      const timestamp = Date.now();
+
       if (Platform.OS === 'web') {
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.onload = async () => {
-          try {
-            const dataUri = reader.result as string;
-            const base64data = dataUri.split(',')[1];
-            const timestamp = Date.now();
-            
-            // Save to AsyncStorage
-            const newHistoryItem = {
-              id: timestamp.toString(),
-              name: `Web Extraction ${new Date(timestamp).toLocaleDateString()}`,
-              date: new Date(timestamp).toLocaleDateString(),
-              size: `${Math.round(base64data.length / 1024)} KB`,
-              dataUri: dataUri
-            };
+        try {
+          const dataUri = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64data}`;
+          
+          // Save to AsyncStorage
+          const newHistoryItem = {
+            id: timestamp.toString(),
+            name: `Web Extraction ${new Date(timestamp).toLocaleDateString()}`,
+            date: new Date(timestamp).toLocaleDateString(),
+            size: `${Math.round(base64data.length / 1024)} KB`,
+            dataUri: dataUri
+          };
 
-            const existingHistoryStr = await AsyncStorage.getItem('conversion_history');
-            const existingHistory = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
-            await AsyncStorage.setItem('conversion_history', JSON.stringify([newHistoryItem, ...existingHistory]));
+          const existingHistoryStr = await AsyncStorage.getItem('conversion_history');
+          const existingHistory = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
+          await AsyncStorage.setItem('conversion_history', JSON.stringify([newHistoryItem, ...existingHistory]));
 
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `extracted_data_${timestamp}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            router.dismissAll();
-          } catch (e) {
-            setErrorMsg("Failed to save history.");
+          // Convert base64 to blob for downloading on web
+          const byteCharacters = atob(base64data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
           }
-        };
-        reader.readAsDataURL(blob);
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `extracted_data_${timestamp}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          router.dismissAll();
+        } catch (e) {
+          console.error("Web save error:", e);
+          setErrorMsg("Failed to save history.");
+        }
       } else {
-        // Read blob as base64 and save locally
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.onload = async () => {
-          try {
-            const base64data = (reader.result as string).split(',')[1];
-            const timestamp = Date.now();
-            const fileName = `extracted_data_${timestamp}.xlsx`;
-            const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-            
-            await FileSystem.writeAsStringAsync(fileUri, base64data, {
-              encoding: FileSystem.EncodingType.Base64,
-            });
+        // Save locally for mobile
+        try {
+          const fileName = `extracted_data_${timestamp}.xlsx`;
+          const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+          
+          await FileSystem.writeAsStringAsync(fileUri, base64data, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
 
-            // Save to AsyncStorage
-            const newHistoryItem = {
-              id: timestamp.toString(),
-              name: `Extraction ${new Date(timestamp).toLocaleDateString()}`,
-              date: new Date(timestamp).toLocaleDateString(),
-              size: `${Math.round(base64data.length / 1024)} KB`,
-              path: fileUri
-            };
+          // Save to AsyncStorage
+          const newHistoryItem = {
+            id: timestamp.toString(),
+            name: `Extraction ${new Date(timestamp).toLocaleDateString()}`,
+            date: new Date(timestamp).toLocaleDateString(),
+            size: `${Math.round(base64data.length / 1024)} KB`,
+            path: fileUri
+          };
 
-            const existingHistoryStr = await AsyncStorage.getItem('conversion_history');
-            const existingHistory = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
-            await AsyncStorage.setItem('conversion_history', JSON.stringify([newHistoryItem, ...existingHistory]));
+          const existingHistoryStr = await AsyncStorage.getItem('conversion_history');
+          const existingHistory = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
+          await AsyncStorage.setItem('conversion_history', JSON.stringify([newHistoryItem, ...existingHistory]));
 
-            if (await Sharing.isAvailableAsync()) {
-              await Sharing.shareAsync(fileUri);
-            } else {
-              Alert.alert("Success", "File saved to documents!");
-            }
-            router.dismissAll();
-          } catch (e) {
-            setErrorMsg("Failed to save Excel file.");
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(fileUri);
+          } else {
+            Alert.alert("Success", "File saved to documents!");
           }
-        };
-        reader.readAsDataURL(blob);
+          router.dismissAll();
+        } catch (e) {
+          console.error("Mobile save error:", e);
+          setErrorMsg(`Failed to save Excel file. ${e}`);
+        }
       }
     } catch (err: any) {
       console.error(err);
