@@ -1,0 +1,5 @@
+◇ injected env (1) from .env // tip: ⌘ enable debugging { debug: true }
+Server is running on port 3002
+Processing image: test_image.jpg (134 bytes)
+Calling Gemini API...
+Gemini processing complete.

@@ -1,0 +1,4 @@
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+API key should be set when using the Gemini API.
+API key should be set when using the Gemini API.
+Server is running on port 3002
