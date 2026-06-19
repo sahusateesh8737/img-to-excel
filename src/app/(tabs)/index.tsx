@@ -65,7 +65,7 @@ export default function HomeScreen() {
       quality: 1,
     });
     if (!result.canceled) {
-      router.push({ pathname: '/crop', params: { uri: result.assets[0].uri } });
+      router.push({ pathname: '/converting', params: { uri: result.assets[0].uri } });
     }
   };
 
@@ -81,7 +81,7 @@ export default function HomeScreen() {
       quality: 1,
     });
     if (!result.canceled) {
-      router.push({ pathname: '/crop', params: { uri: result.assets[0].uri } });
+      router.push({ pathname: '/converting', params: { uri: result.assets[0].uri } });
     }
   };
 

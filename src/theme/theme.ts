@@ -36,6 +36,7 @@ export const theme = {
     headlineMd: { fontFamily: 'Inter', fontSize: 20, fontWeight: '600' as const, lineHeight: 28 },
     bodyLg: { fontFamily: 'Inter', fontSize: 16, fontWeight: '400' as const, lineHeight: 24 },
     bodySm: { fontFamily: 'Inter', fontSize: 14, fontWeight: '400' as const, lineHeight: 20 },
+    labelLg: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600' as const, lineHeight: 20, letterSpacing: 0.1 },
     labelMd: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600' as const, lineHeight: 16, letterSpacing: 0.6 },
   },
   rounded: {

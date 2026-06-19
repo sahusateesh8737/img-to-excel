@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Platform, Alert, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme/theme';
@@ -14,6 +14,8 @@ export default function ConvertingScreen() {
   const insets = useSafeAreaInsets();
   
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [status, setStatus] = useState<'converting' | 'success'>('converting');
+  const [savedFileUri, setSavedFileUri] = useState<string | null>(null);
 
   const spinAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -143,7 +145,8 @@ export default function ConvertingScreen() {
           document.body.appendChild(a);
           a.click();
           a.remove();
-          router.dismissAll();
+          setSavedFileUri(dataUri);
+          setStatus('success');
         } catch (e) {
           console.error("Web save error:", e);
           setErrorMsg("Failed to save history.");
@@ -155,7 +158,7 @@ export default function ConvertingScreen() {
           const fileUri = `${FileSystem.documentDirectory}${fileName}`;
           
           await FileSystem.writeAsStringAsync(fileUri, base64data, {
-            encoding: FileSystem.EncodingType.Base64,
+            encoding: 'base64' as any,
           });
 
           // Save to AsyncStorage
@@ -171,12 +174,8 @@ export default function ConvertingScreen() {
           const existingHistory = existingHistoryStr ? JSON.parse(existingHistoryStr) : [];
           await AsyncStorage.setItem('conversion_history', JSON.stringify([newHistoryItem, ...existingHistory]));
 
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(fileUri);
-          } else {
-            Alert.alert("Success", "File saved to documents!");
-          }
-          router.dismissAll();
+          setSavedFileUri(fileUri);
+          setStatus('success');
         } catch (e) {
           console.error("Mobile save error:", e);
           setErrorMsg(`Failed to save Excel file. ${e}`);
@@ -207,6 +206,43 @@ export default function ConvertingScreen() {
             <Text style={[styles.title, { color: theme.colors.error }]}>Processing Failed</Text>
             <Text style={styles.subtitle}>{errorMsg}</Text>
           </View>
+        ) : status === 'success' ? (
+          <View style={styles.textContainer}>
+            <MaterialIcons name="check-circle" size={64} color={theme.colors.primary} />
+            <Text style={styles.title}>Conversion Complete!</Text>
+            <Text style={styles.subtitle}>Your Excel file is ready.</Text>
+            
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity 
+                style={styles.primaryButton}
+                onPress={async () => {
+                  if (Platform.OS === 'web') {
+                    Alert.alert("Already Downloaded", "The file was already downloaded to your browser.");
+                  } else if (savedFileUri) {
+                    if (await Sharing.isAvailableAsync()) {
+                      await Sharing.shareAsync(savedFileUri, { 
+                        UTI: 'com.microsoft.excel.xls', 
+                        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                      });
+                    } else {
+                      Alert.alert("Not available", "Sharing is not available on this device");
+                    }
+                  }
+                }}
+              >
+                <MaterialIcons name="open-in-new" size={20} color={theme.colors.onPrimary} />
+                <Text style={styles.primaryButtonText}>Open / Share File</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.secondaryButton}
+                onPress={() => router.dismissAll()}
+              >
+                <MaterialIcons name="home" size={20} color={theme.colors.primary} />
+                <Text style={styles.secondaryButtonText}>Return to Home</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         ) : (
           <>
             <Animated.View style={[styles.spinnerContainer, { transform: [{ rotate: spin }] }]} />
@@ -223,7 +259,7 @@ export default function ConvertingScreen() {
         )}
       </View>
 
-      {!errorMsg && (
+      {status === 'converting' && !errorMsg && (
         <View style={styles.tipContainer}>
           <View style={styles.tipCard}>
             <MaterialIcons name="lightbulb" size={20} color={theme.colors.primary} />
@@ -313,5 +349,46 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.labelMd.fontSize,
     fontWeight: theme.typography.labelMd.fontWeight,
     color: theme.colors.onSurfaceVariant,
+  },
+  actionsContainer: {
+    width: '100%',
+    marginTop: theme.spacing.xl,
+    gap: theme.spacing.md,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.rounded.full,
+    gap: theme.spacing.sm,
+    width: '100%',
+  },
+  primaryButtonText: {
+    color: theme.colors.onPrimary,
+    fontFamily: theme.typography.labelLg.fontFamily,
+    fontSize: theme.typography.labelLg.fontSize,
+    fontWeight: theme.typography.labelLg.fontWeight,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.rounded.full,
+    gap: theme.spacing.sm,
+    width: '100%',
+  },
+  secondaryButtonText: {
+    color: theme.colors.primary,
+    fontFamily: theme.typography.labelLg.fontFamily,
+    fontSize: theme.typography.labelLg.fontSize,
+    fontWeight: theme.typography.labelLg.fontWeight,
   },
 });
