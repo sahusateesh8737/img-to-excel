@@ -73,9 +73,10 @@ If there are no clear headers, invent logical ones based on the data.`;
     const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
     // 5. Send Response
-    res.setHeader('Content-Disposition', 'attachment; filename="extracted_data.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(excelBuffer);
+    res.json({
+      filename: 'extracted_data.xlsx',
+      base64: excelBuffer.toString('base64')
+    });
 
   } catch (error) {
     console.error('Error processing image:', error);
