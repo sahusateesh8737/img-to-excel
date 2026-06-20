@@ -6,9 +6,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Appbar, Card, Text as PaperText, Button as PaperButton, Icon } from 'react-native-paper';
 import { theme } from '../../theme/theme';
-import { Button } from '../../components/ui/Button';
-import { IconButton } from '../../components/ui/IconButton';
 import { ConversionItem } from '../../components/ConversionItem';
 
 export default function HomeScreen() {
@@ -89,13 +88,10 @@ export default function HomeScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header (Hidden on tablet/desktop as per design, but keeping simple here) */}
       {!isTablet && (
-        <View style={styles.header}>
-          <View style={styles.headerTitleContainer}>
-            <MaterialIcons name="arrow-back" size={24} color={theme.colors.primary} />
-            <Text style={styles.headerTitle}>ImgToExcel</Text>
-          </View>
-          <IconButton icon="more-vert" onPress={() => {}} />
-        </View>
+        <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+          <Appbar.Content title="ImgToExcel" color={theme.colors.primary} />
+          <Appbar.Action icon="dots-vertical" onPress={() => {}} />
+        </Appbar.Header>
       )}
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -122,32 +118,30 @@ export default function HomeScreen() {
           {/* Action Buttons */}
           <View style={[styles.actionSection, isTablet && styles.actionSectionTablet]}>
             <View style={styles.actionButtonWrapper}>
-              <Button
-                title="Take a Photo"
-                icon="photo-camera"
-                variant="primary"
-                onPress={handleTakePhoto}
-                style={styles.actionButton}
-              />
+              <Card mode="contained" onPress={handleTakePhoto} style={styles.actionCard}>
+                <Card.Content style={styles.actionCardContent}>
+                  <Icon source="camera" size={32} color={theme.colors.primary} />
+                  <PaperText variant="titleMedium" style={{ marginTop: 8 }}>Take a Photo</PaperText>
+                </Card.Content>
+              </Card>
             </View>
             <View style={styles.actionButtonWrapper}>
-              <Button
-                title="Upload from Gallery"
-                icon="image"
-                variant="secondary"
-                onPress={handleUploadGallery}
-                style={styles.actionButton}
-              />
+              <Card mode="contained" onPress={handleUploadGallery} style={styles.actionCard}>
+                <Card.Content style={styles.actionCardContent}>
+                  <Icon source="image" size={32} color={theme.colors.primary} />
+                  <PaperText variant="titleMedium" style={{ marginTop: 8 }}>Upload from Gallery</PaperText>
+                </Card.Content>
+              </Card>
             </View>
           </View>
 
           {/* Recent Conversions */}
           <View style={styles.recentSection}>
             <View style={styles.recentHeader}>
-              <Text style={styles.recentTitle}>Recent Conversions</Text>
-              {recentConversions.length > 0 && <Text style={styles.recentViewAll}>View All</Text>}
+              <PaperText variant="titleLarge" style={{ color: theme.colors.onSurface }}>Recent Conversions</PaperText>
+              {recentConversions.length > 0 && <PaperButton compact textColor={theme.colors.primary}>View All</PaperButton>}
             </View>
-            <View style={styles.recentList}>
+            <Card mode="elevated" style={styles.recentListCard}>
               {recentConversions.length === 0 ? (
                 <Text style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant, padding: theme.spacing.lg }}>
                   No recent conversions yet.
@@ -164,7 +158,7 @@ export default function HomeScreen() {
                   />
                 ))
               )}
-            </View>
+            </Card>
           </View>
         </View>
       </ScrollView>
@@ -176,21 +170,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.marginMobile,
-    height: 48,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.outlineVariant,
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
   },
   headerTitle: {
     fontFamily: theme.typography.headlineMd.fontFamily,
@@ -258,8 +237,14 @@ const styles = StyleSheet.create({
   actionButtonWrapper: {
     flex: 1,
   },
-  actionButton: {
+  actionCard: {
     height: 120,
+    backgroundColor: theme.colors.secondaryContainer,
+  },
+  actionCardContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
   },
   recentSection: {
     gap: theme.spacing.sm,
@@ -269,23 +254,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  recentTitle: {
-    fontFamily: theme.typography.headlineMd.fontFamily,
-    fontSize: theme.typography.headlineMd.fontSize,
-    fontWeight: theme.typography.headlineMd.fontWeight,
-    color: theme.colors.onSurface,
-  },
-  recentViewAll: {
-    fontFamily: theme.typography.bodySm.fontFamily,
-    fontSize: theme.typography.bodySm.fontSize,
-    fontWeight: '600',
-    color: theme.colors.primary,
-  },
-  recentList: {
+  recentListCard: {
     backgroundColor: theme.colors.surfaceContainerLowest,
     borderRadius: theme.rounded.xl,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: theme.colors.outlineVariant,
+    marginTop: theme.spacing.sm,
   },
 });

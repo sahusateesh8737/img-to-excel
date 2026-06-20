@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Platform, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Animated, Easing, Platform, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import * as IntentLauncher from 'expo-intent-launcher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Text as PaperText, Button as PaperButton, ActivityIndicator, ProgressBar } from 'react-native-paper';
 import { theme } from '../theme/theme';
 
 export default function ConvertingScreen() {
@@ -203,21 +205,54 @@ export default function ConvertingScreen() {
         {errorMsg ? (
           <View style={styles.textContainer}>
             <MaterialIcons name="error-outline" size={48} color={theme.colors.error} />
-            <Text style={[styles.title, { color: theme.colors.error }]}>Processing Failed</Text>
-            <Text style={styles.subtitle}>{errorMsg}</Text>
+            <PaperText variant="headlineMedium" style={{ color: theme.colors.error }}>Processing Failed</PaperText>
+            <PaperText variant="bodyLarge" style={styles.subtitle}>{errorMsg}</PaperText>
           </View>
         ) : status === 'success' ? (
           <View style={styles.textContainer}>
             <MaterialIcons name="check-circle" size={64} color={theme.colors.primary} />
-            <Text style={styles.title}>Conversion Complete!</Text>
-            <Text style={styles.subtitle}>Your Excel file is ready.</Text>
+            <PaperText variant="headlineMedium" style={{ color: theme.colors.primary, textAlign: 'center' }}>Conversion Complete!</PaperText>
+            <PaperText variant="bodyLarge" style={styles.subtitle}>Your Excel file is ready.</PaperText>
             
             <View style={styles.actionsContainer}>
-              <TouchableOpacity 
-                style={styles.primaryButton}
+              <PaperButton 
+                mode="contained"
+                icon="table"
                 onPress={async () => {
                   if (Platform.OS === 'web') {
                     Alert.alert("Already Downloaded", "The file was already downloaded to your browser.");
+                  } else if (savedFileUri) {
+                    try {
+                      if (Platform.OS === 'android') {
+                        const contentUri = await FileSystem.getContentUriAsync(savedFileUri);
+                        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+                          data: contentUri,
+                          flags: 1,
+                          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        });
+                      } else {
+                        if (await Sharing.isAvailableAsync()) {
+                          await Sharing.shareAsync(savedFileUri, { 
+                            UTI: 'com.microsoft.excel.xls', 
+                            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                          });
+                        }
+                      }
+                    } catch (e) {
+                      Alert.alert("Notice", "No app found to open Excel files. Please install Google Sheets or Microsoft Excel.");
+                    }
+                  }
+                }}
+              >
+                Open in Sheets / Excel
+              </PaperButton>
+              
+              <PaperButton 
+                mode="contained-tonal"
+                icon="share"
+                onPress={async () => {
+                  if (Platform.OS === 'web') {
+                    Alert.alert("Not supported", "Please use the Open button to download the file.");
                   } else if (savedFileUri) {
                     if (await Sharing.isAvailableAsync()) {
                       await Sharing.shareAsync(savedFileUri, { 
@@ -230,32 +265,33 @@ export default function ConvertingScreen() {
                   }
                 }}
               >
-                <MaterialIcons name="open-in-new" size={20} color={theme.colors.onPrimary} />
-                <Text style={styles.primaryButtonText}>Open / Share File</Text>
-              </TouchableOpacity>
+                Share File
+              </PaperButton>
               
-              <TouchableOpacity 
-                style={styles.secondaryButton}
+              <PaperButton 
+                mode="text"
+                icon="home"
                 onPress={() => router.dismissAll()}
               >
-                <MaterialIcons name="home" size={20} color={theme.colors.primary} />
-                <Text style={styles.secondaryButtonText}>Return to Home</Text>
-              </TouchableOpacity>
+                Return to Home
+              </PaperButton>
             </View>
           </View>
         ) : (
-          <>
-            <Animated.View style={[styles.spinnerContainer, { transform: [{ rotate: spin }] }]} />
+          <View style={{ width: '100%', alignItems: 'center', gap: theme.spacing.lg }}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
             <View style={styles.textContainer}>
-              <Text style={styles.title}>AI is processing your image...</Text>
-              <Animated.Text style={[styles.subtitle, { opacity: pulseAnim }]}>
-                Converting table to Excel format (5-15s)
-              </Animated.Text>
+              <PaperText variant="headlineSmall" style={{ color: theme.colors.primary, textAlign: 'center' }}>AI is processing your image...</PaperText>
+              <Animated.View style={{ opacity: pulseAnim }}>
+                <PaperText variant="bodyLarge" style={styles.subtitle}>
+                  Converting table to Excel format (5-15s)
+                </PaperText>
+              </Animated.View>
             </View>
-            <View style={styles.progressBarBackground}>
-              <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+            <View style={{ width: '100%' }}>
+              <ProgressBar progress={0.5} indeterminate color={theme.colors.primary} />
             </View>
-          </>
+          </View>
         )}
       </View>
 
@@ -263,9 +299,9 @@ export default function ConvertingScreen() {
         <View style={styles.tipContainer}>
           <View style={styles.tipCard}>
             <MaterialIcons name="lightbulb" size={20} color={theme.colors.primary} />
-            <Text style={styles.tipText}>
+            <PaperText variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
               Tip: The clearer the table, the better the results.
-            </Text>
+            </PaperText>
           </View>
         </View>
       )}
